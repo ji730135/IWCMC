@@ -1,5 +1,6 @@
 import networkx as nx
 import matplotlib.pyplot as plt
+from networkx.classes.function import is_empty
 import numpy as np
 from itertools import islice
 
@@ -15,7 +16,7 @@ def k_shortest_paths(G, source, target, k, weight=None):
 网络模型
 '''
 # 生成网络拓扑
-number_node = 50
+number_node = 10
 seed = 3
 G = nx.random_internet_as_graph(number_node, seed)
 nx.write_gml(G, "AS_topology.gml")
@@ -85,36 +86,35 @@ for client in clients:
 
 # 得到备选树
 alternative_trees = []
-stack = []
-stack.append(0)
-depth = 0
-cur_indexs = []
-# 栈不空就是没有遍历完
-while len(stack) != 0:
-    # 取出当前栈顶元素
-    item = stack.pop()
-    # 该元素加入当前序列
-    cur_indexs.append(item)
-    # 向下进了1层
-    depth += 1
-    # 如果该元素有子节点就入栈，这里的判断条件注意，应该是当该元素为“3之后的元素”时就没有子节点了
-    if depth < len(clients):
-        # 有子节点就是k个。这里入栈，所以倒着入栈，就可以正着出栈
-        for i in range(len(k_shortest_paths_dict[clients[depth]]) - 1, -1, -1):
-            stack.append(i)
-    else:
-        # 到最后一层了就建立一个组播树
-        G = nx.Graph(name="G({})".format(len(alternative_trees)))
-        for client, path_index in zip(clients, cur_indexs):
-            paths = k_shortest_paths_dict[client]
-            nx.add_path(G, paths[path_index])
-        alternative_trees.append(G)
-        cur_indexs.pop()
-        depth -= 1
-    # 如果到了某层发现子节点都遍历完了那么就要回溯到上一层
-    if item == len(k_shortest_paths_dict[clients[depth]]) - 1:
-        cur_indexs.pop()
-        depth -= 1
+indexs_seq = []
+for i in range(len(k_shortest_paths_dict[clients[0]])):
+    stack = []
+    stack.append((i, 0))
+    cur_indexs = [[]]
+    # 栈不空就是没有遍历完
+    while len(stack) != 0:
+        # 取出当前栈顶元素
+        item, depth = stack.pop()
+        temp_indexs = cur_indexs.pop()
+        # 如果还没访问到最后一层
+        if depth < len(clients) - 1:
+            temp_indexs.append(item)
+            depth += 1
+            # 有子节点就是k个。这里入栈，所以倒着入栈，就可以正着出栈
+            for i in range(
+                    len(k_shortest_paths_dict[clients[depth]]) - 1, -1, -1):
+                stack.append((i, depth))
+                cur_indexs.append(temp_indexs.copy())
+        else:
+            temp_indexs.append(item)
+            indexs_seq.append(temp_indexs.copy())
+            # 到最后一层了就建立一个组播树
+            G = nx.Graph(name="G({})".format(len(alternative_trees)))
+            for client, path_index in zip(clients, temp_indexs):
+                paths = k_shortest_paths_dict[client]
+                nx.add_path(G, paths[path_index])
+            alternative_trees.append(G)
+# print(indexs_seq)
 
 # 组播树去环
 no_cycle = 0
