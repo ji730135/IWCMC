@@ -37,11 +37,11 @@ def prim(G, nbunch, start=0):
     return minu_tree
 
 
-def network(number_node=100, seed=36):
+def network(number_node=200, seed=36):
     '''
     网络模型
     生成网络拓扑
-    返回值：networkx graph，无节点和边属性
+    返回值:networkx graph，无节点和边属性
     '''
     G = nx.random_internet_as_graph(number_node, seed)
     nx.write_gml(G, "AS_topology.gml")

@@ -1,18 +1,16 @@
+import random
 from networkx.algorithms import shortest_paths
+from networkx.algorithms.centrality.current_flow_betweenness import approximate_current_flow_betweenness_centrality
 import multicast_tree
 import networkx as nx
 import attacker
+import numpy as np
+
+
 # 获取当前网络拓扑，对节点实施攻击，攻击的效果为使链路的利用率升高，延迟升高
 # 先考虑域内的攻击情况
-'''
-对于域内来说，如果一个攻击者以一定概率随机选择节点进行攻击，使链路利用率和时延增大，那么如果我随机跳变了，整个组播树理论上是不太会受到持续的影响的
-，就是说我的时延和链路利用率表现和攻击之前的差距不大或者几乎没有。画一个没有攻击时的时延和链路利用率变化图，再画一个受到攻击时的时延和链路利用率变化图。
 
-攻击成功率也可以算，定义为攻击到了组播树上所含的网络节点的百分比
-
-'''
-
-
+# 计算组播树总延迟之和
 def delay_of_multicast_tree(graph, multicast_tree):
 
     sum_delay = 0.0
@@ -32,9 +30,14 @@ clients = multicast_tree.get_clients(G)
 attacker_G = nx.Graph(G)
 
 alternative_graphs = multicast_tree.random_pick(
-    multicast_tree.k_shortest_paths_dictionary(G), clients, 30)
+    multicast_tree.k_shortest_paths_dictionary(G), clients, 100)
 alternative_trees = multicast_tree.remove_cycle(G, alternative_graphs)
-for round in range(30):
+spt_delays_without_attack = []
+spt_delays_with_attack = []
+delay_without_attack = []
+delay_with_attack = []
+
+for round in range(100):
 
     shortest_paths_dict = {}
     # 对每个client求k短路
@@ -47,8 +50,8 @@ for round in range(30):
     spt = nx.Graph(name="spt")
     spt.add_edges_from(t)
 
-    SPT_delay_without_attack = delay_of_multicast_tree(G, spt)
-    print("delay of the spt without attack: {}".format(SPT_delay_without_attack))
+    spt_delays_without_attack.append(delay_of_multicast_tree(G, spt))
+    # print("delay of the spt without attack: {}".format(SPT_delay_without_attack))
 
     attacked_G = nx.Graph(attacker_G)
     nx.write_edgelist(attacked_G, "network.txt", data=False)
@@ -57,9 +60,9 @@ for round in range(30):
     attack_model.calculateDegree()
     attack_model.degreeChange()
     attack_model.buildingModel()
-    test_node = attack_model.selectNodes()
-    print("attacked node: ", test_node)
-    attacked_edges = attacked_G.edges(test_node)
+    attack_nodes = attack_model.selectNodes()
+    # print("attacked node: ", test_node)
+    attacked_edges = attacked_G.edges(attack_nodes)
 
     # 链路赋新延迟
     for edge in attacked_edges:
@@ -73,20 +76,47 @@ for round in range(30):
             attacked_G.edges[edge]["UtilizationRate"] = 1
 
     # 被攻击之后的组播树延迟情况
-    delay_with_attack = delay_of_multicast_tree(attacked_G, spt)
-    print("delay of the spt with attack: {}".format(delay_with_attack))
-
+    spt_delays_with_attack.append(delay_of_multicast_tree(attacked_G, spt))
+    # print("delay of the spt with attack: {}".format(delay_with_attack))
 
     # 被攻击之前的组播树延迟情况
     # 选定组播树
-    # multicast_tree = nx.Graph(random.choice(alternative_tree))
     tree = alternative_trees[round]
-    delay_without_attack = delay_of_multicast_tree(G, tree)
-    print("delay of the multicast tree without attack: {}".format(
-        delay_without_attack))
+    delay_without_attack.append(delay_of_multicast_tree(G, tree))
+    # print("delay of the multicast tree without attack: {}".format(
+    #     delay_without_attack))
 
     # 被攻击之后的组播树延迟情况
-    delay_with_attack = delay_of_multicast_tree(attacked_G, tree)
-    print("delay of the multicast tree with attack: {}".format(
-        delay_with_attack))
-    print()
+    delay_with_attack.append(delay_of_multicast_tree(attacked_G, tree))
+    # print("delay of the multicast tree with attack: {}".format(
+    #     delay_with_attack))
+    # print()
+
+# print(spt_delays_without_attack)
+# print(spt_delays_with_attack)
+# print(delay_without_attack)
+# print(delay_with_attack)
+for item in list(
+        zip(spt_delays_without_attack, delay_without_attack,
+            spt_delays_with_attack, delay_with_attack)):
+    print(item)
+
+defense_timeslot = 0.5
+success_rates = []
+attacked_G = nx.Graph(attacker_G)
+nx.write_edgelist(attacked_G, "network.txt", data=False)
+attack_model = attacker.IPVNM()
+attack_model.importFigure()
+attack_model.calculateDegree()
+attack_model.degreeChange()
+attack_model.buildingModel()
+attack_nodes = attack_model.selectNodes()
+# print("attacked node: ", test_node)
+attacked_edges = attacked_G.edges(attack_nodes)
+for i in range(20):
+    tree = random.choice(alternative_trees)
+    # rng = np.random.default_rng()
+    # tree = rng.choice(alternative_trees)
+    success_rates.append(
+        len(set(tree.nodes).intersection(set(attack_nodes))) / len(attack_nodes))
+print(success_rates)

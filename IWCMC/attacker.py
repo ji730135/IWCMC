@@ -4,7 +4,7 @@
 
 import random
 from typing import Deque
-number_node  = 100
+number_node  = 200
 
 class IPVNM():
     def __init__(self):
@@ -115,7 +115,7 @@ class IPVNM():
 
     def selectNodes(self):  # 选取被攻击的点
 
-        pickingNodes = [0 for i in range(int(number_node / 8))]
+        pickingNodes = [0 for i in range(int(number_node / 20))]
         selecting = 0
         selecting_list = [0 for i in range(number_node)]
         i = 0
@@ -128,7 +128,7 @@ class IPVNM():
         for i in range(number_node):  # &&&&&&&
             self.temp_posibility_list[i] = self.posibility_list[i]  # $$$$$
 
-        while (selecting < int(number_node / 8)):
+        while (selecting < int(number_node / 20)):
             x = self.random_pick(selecting_list)
             pickingNodes[selecting] = x
             p = selecting_list.index(x)
