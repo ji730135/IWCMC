@@ -4,7 +4,7 @@
 
 import random
 from typing import Deque
-number_node  = 200
+number_node  = 20
 
 class IPVNM():
     def __init__(self):

@@ -1,3 +1,4 @@
+from time import time
 import networkx as nx
 import matplotlib.pyplot as plt
 from networkx.algorithms import shortest_paths
@@ -6,7 +7,7 @@ from itertools import islice
 from collections import defaultdict, deque
 from heapq import *
 import random
-
+import time
 
 def k_shortest_paths(G, source, target, k, weight=None):
     return list(
@@ -37,7 +38,7 @@ def prim(G, nbunch, start=0):
     return minu_tree
 
 
-def network(number_node=200, seed=36):
+def network(number_node=20, seed=36):
     '''
     网络模型
     生成网络拓扑
@@ -137,6 +138,8 @@ def k_shortest_paths_dictionary(G, server=0, k=4):
 
 
 def DFS(paths_dict, clients):
+    times = []
+    begin = time.time()*100000
     # 得到备选图
     alternative_graphs = []
     indexs_seq = []
@@ -166,12 +169,18 @@ def DFS(paths_dict, clients):
                     paths = paths_dict[client]
                     nx.add_path(gra, paths[path_index])
                 alternative_graphs.append(gra)
+                end = time.time()*100000
+                times.append(end-begin)
+                begin = end
     # print(indexs_seq)
+    # print("DFS: {}".format(times))
     return alternative_graphs
 
 
 def random_pick(paths_dict, clients, number):
     alternative_graphs = []
+    times = []
+    begin = time.time()*100000
     # 随机选择索引
     for i in range(number):
         rng2 = np.random.default_rng()
@@ -183,6 +192,11 @@ def random_pick(paths_dict, clients, number):
             paths = paths_dict[client]
             nx.add_path(gra, paths[path_index])
         alternative_graphs.append(gra)
+        end = time.time()*100000
+        times.append(end-begin)
+        begin = end
+
+    print("random pick: {}".format(times))
     return alternative_graphs
 
 
